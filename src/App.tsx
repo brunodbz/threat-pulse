@@ -6,6 +6,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
+import AlertsPage from "./pages/AlertsPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import AuditPage from "./pages/AuditPage";
+import UsersPage from "./pages/UsersPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 const queryClient = new QueryClient();
@@ -24,47 +30,34 @@ const App = () => (
                 <Dashboard />
               </MainLayout>
             } />
-            {/* TODO: Add other protected routes here */}
             <Route path="/alerts" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Alertas - Em Desenvolvimento</h1>
-                </div>
+                <AlertsPage />
               </MainLayout>
             } />
             <Route path="/analytics" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Analytics - Em Desenvolvimento</h1>
-                </div>
+                <AnalyticsPage />
               </MainLayout>
             } />
             <Route path="/audit" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Auditoria - Em Desenvolvimento</h1>
-                </div>
+                <AuditPage />
               </MainLayout>
             } />
             <Route path="/users" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Usuários - Em Desenvolvimento</h1>
-                </div>
+                <UsersPage />
               </MainLayout>
             } />
             <Route path="/integrations" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Integrações - Em Desenvolvimento</h1>
-                </div>
+                <IntegrationsPage />
               </MainLayout>
             } />
             <Route path="/settings" element={
               <MainLayout>
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Configurações - Em Desenvolvimento</h1>
-                </div>
+                <SettingsPage />
               </MainLayout>
             } />
             {/* Catch-all route for 404 */}
