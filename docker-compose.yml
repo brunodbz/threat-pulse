@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  security-dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+  # Optional: Add nginx as reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - security-dashboard
+    restart: unless-stopped
+
+# Optional: Network configuration
+networks:
+  default:
+    driver: bridge
+
+# Optional: Volume for persistent data (if needed)
+volumes:
+  ssl_certs:
+    driver: local
