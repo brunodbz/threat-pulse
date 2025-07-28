@@ -70,8 +70,8 @@ const MOCK_USERS: User[] = [
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
@@ -100,8 +100,8 @@ export default function UsersPage() {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesStatus = !statusFilter || 
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'active' && user.isActive) ||
                          (statusFilter === 'inactive' && !user.isActive);
     
@@ -314,7 +314,7 @@ export default function UsersPage() {
                 <SelectValue placeholder="Função" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as funções</SelectItem>
+                <SelectItem value="all">Todas as funções</SelectItem>
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="gestor">Gestor</SelectItem>
                 <SelectItem value="analista">Analista</SelectItem>
@@ -326,7 +326,7 @@ export default function UsersPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
                 <SelectItem value="inactive">Inativo</SelectItem>
               </SelectContent>
@@ -337,8 +337,8 @@ export default function UsersPage() {
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm('');
-                  setRoleFilter('');
-                  setStatusFilter('');
+                  setRoleFilter('all');
+                  setStatusFilter('all');
                 }}
                 className="flex-1"
               >
