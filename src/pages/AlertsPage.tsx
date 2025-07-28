@@ -13,9 +13,9 @@ export default function AlertsPage() {
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    source: '',
-    severity: '',
-    status: '',
+    source: 'all',
+    severity: 'all',
+    status: 'all',
     search: ''
   });
   const { toast } = useToast();
@@ -28,9 +28,9 @@ export default function AlertsPage() {
     setLoading(true);
     try {
       const data = await mockApi.getEvents({
-        source: filters.source || undefined,
-        severity: filters.severity || undefined,
-        status: filters.status || undefined
+        source: filters.source === 'all' ? undefined : filters.source || undefined,
+        severity: filters.severity === 'all' ? undefined : filters.severity || undefined,
+        status: filters.status === 'all' ? undefined : filters.status || undefined
       });
       setEvents(data);
     } catch (error) {
@@ -153,7 +153,7 @@ export default function AlertsPage() {
                 <SelectValue placeholder="Fonte" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as fontes</SelectItem>
+                <SelectItem value="all">Todas as fontes</SelectItem>
                 <SelectItem value="elastic">Elastic</SelectItem>
                 <SelectItem value="trellix">Trellix</SelectItem>
                 <SelectItem value="defender">Defender</SelectItem>
@@ -166,7 +166,7 @@ export default function AlertsPage() {
                 <SelectValue placeholder="Severidade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
                 <SelectItem value="critical">Crítica</SelectItem>
                 <SelectItem value="high">Alta</SelectItem>
                 <SelectItem value="medium">Média</SelectItem>
@@ -179,7 +179,7 @@ export default function AlertsPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="open">Aberto</SelectItem>
                 <SelectItem value="investigating">Investigando</SelectItem>
                 <SelectItem value="resolved">Resolvido</SelectItem>
