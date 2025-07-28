@@ -15,8 +15,8 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    user: '',
-    action: '',
+    user: 'all',
+    action: 'all',
     search: ''
   });
   const { toast } = useToast();
@@ -30,8 +30,8 @@ export default function AuditPage() {
     setLoading(true);
     try {
       const data = await mockApi.getAuditLog({
-        user: filters.user || undefined,
-        action: filters.action || undefined
+        user: filters.user === 'all' ? undefined : filters.user || undefined,
+        action: filters.action === 'all' ? undefined : filters.action || undefined
       });
       setLogs(data);
     } catch (error) {
@@ -187,7 +187,7 @@ export default function AuditPage() {
                 <SelectValue placeholder="Usuário" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os usuários</SelectItem>
+                <SelectItem value="all">Todos os usuários</SelectItem>
                 {uniqueUsers.map(user => (
                   <SelectItem key={user} value={user}>{user}</SelectItem>
                 ))}
@@ -199,7 +199,7 @@ export default function AuditPage() {
                 <SelectValue placeholder="Ação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as ações</SelectItem>
+                <SelectItem value="all">Todas as ações</SelectItem>
                 {uniqueActions.map(action => (
                   <SelectItem key={action} value={action}>{action}</SelectItem>
                 ))}
