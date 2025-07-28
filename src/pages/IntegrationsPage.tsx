@@ -210,6 +210,62 @@ export default function IntegrationsPage() {
     setDialogOpen(true);
   };
 
+  const handleSaveIntegration = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const type = formData.get('type') as string;
+    const description = formData.get('description') as string;
+    const endpoint = formData.get('endpoint') as string;
+    const apiKey = formData.get('apiKey') as string;
+    const enabled = formData.get('enabled') === 'on';
+
+    console.log('Salvando integração:', { name, type, description, endpoint, apiKey, enabled });
+
+    if (editingIntegration) {
+      setIntegrations(prev => prev.map(integration => 
+        integration.id === editingIntegration.id 
+          ? { 
+              ...integration, 
+              name, 
+              type, 
+              description,
+              config: { endpoint, apiKey, enabled },
+              status: enabled ? 'connected' : 'disconnected',
+              lastSync: new Date()
+            }
+          : integration
+      ));
+      toast({
+        title: "Sucesso",
+        description: "Integração atualizada com sucesso"
+      });
+    } else {
+      const newIntegration: Integration = {
+        id: Date.now().toString(),
+        name,
+        type,
+        description,
+        status: enabled ? 'connected' : 'disconnected',
+        lastSync: enabled ? new Date() : null,
+        icon: '🔗',
+        config: { endpoint, apiKey, enabled },
+        metrics: {
+          eventsToday: 0,
+          totalEvents: 0,
+          errorRate: 0
+        }
+      };
+      setIntegrations(prev => [...prev, newIntegration]);
+      toast({
+        title: "Sucesso",
+        description: "Nova integração criada com sucesso"
+      });
+    }
+    
+    setDialogOpen(false);
+  };
+
   const stats = {
     total: integrations.length,
     connected: integrations.filter(i => i.status === 'connected').length,
@@ -251,22 +307,26 @@ export default function IntegrationsPage() {
                 {editingIntegration ? 'Editar Integração' : 'Nova Integração'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <form onSubmit={handleSaveIntegration} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Nome</Label>
                   <Input
                     id="name"
+                    name="name"
                     placeholder="Nome da integração"
                     defaultValue={editingIntegration?.name}
+                    required
                   />
                 </div>
                 <div>
                   <Label htmlFor="type">Tipo</Label>
                   <Input
                     id="type"
+                    name="type"
                     placeholder="SIEM, EDR, ATP, etc."
                     defaultValue={editingIntegration?.type}
+                    required
                   />
                 </div>
               </div>
@@ -274,6 +334,7 @@ export default function IntegrationsPage() {
                 <Label htmlFor="description">Descrição</Label>
                 <Textarea
                   id="description"
+                  name="description"
                   placeholder="Descrição da integração"
                   defaultValue={editingIntegration?.description}
                 />
@@ -282,14 +343,17 @@ export default function IntegrationsPage() {
                 <Label htmlFor="endpoint">Endpoint</Label>
                 <Input
                   id="endpoint"
+                  name="endpoint"
                   placeholder="https://api.exemplo.com"
                   defaultValue={editingIntegration?.config.endpoint}
+                  required
                 />
               </div>
               <div>
                 <Label htmlFor="apiKey">API Key</Label>
                 <Input
                   id="apiKey"
+                  name="apiKey"
                   type="password"
                   placeholder="Chave da API"
                   defaultValue={editingIntegration?.config.apiKey}
@@ -298,19 +362,20 @@ export default function IntegrationsPage() {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="enabled"
+                  name="enabled"
                   defaultChecked={editingIntegration?.config.enabled}
                 />
                 <Label htmlFor="enabled">Habilitar integração</Label>
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={() => setDialogOpen(false)}>
+                <Button type="submit">
                   {editingIntegration ? 'Salvar' : 'Criar'}
                 </Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
