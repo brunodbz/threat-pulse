@@ -74,6 +74,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userFormData, setUserFormData] = useState({ name: '', email: '', role: '' });
   
   const { user: currentUser } = useAuth();
   const permissions = usePermissions();
@@ -118,11 +119,13 @@ export default function UsersPage() {
 
   const handleCreateUser = () => {
     setEditingUser(null);
+    setUserFormData({ name: '', email: '', role: '' });
     setDialogOpen(true);
   };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+    setUserFormData({ name: user.name, email: user.email, role: user.role });
     setDialogOpen(true);
   };
 
@@ -164,6 +167,46 @@ export default function UsersPage() {
     });
   };
 
+  const handleSaveUser = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const role = formData.get('role') as User['role'];
+
+    console.log('Salvando usuário:', { name, email, role, editingUser });
+
+    if (editingUser) {
+      setUsers(prev => prev.map(u => 
+        u.id === editingUser.id 
+          ? { ...u, name, email, role }
+          : u
+      ));
+      toast({
+        title: "Sucesso",
+        description: "Usuário atualizado com sucesso"
+      });
+    } else {
+      const newUser: User = {
+        id: Date.now().toString(),
+        name,
+        email,
+        role,
+        avatar: `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face`,
+        createdAt: new Date(),
+        lastLogin: null,
+        isActive: true,
+      };
+      setUsers(prev => [...prev, newUser]);
+      toast({
+        title: "Sucesso",
+        description: "Usuário criado com sucesso"
+      });
+    }
+    
+    setDialogOpen(false);
+  };
+
   if (!permissions.canManageUsers) {
     return (
       <div className="p-6">
@@ -198,27 +241,31 @@ export default function UsersPage() {
                 {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <form onSubmit={handleSaveUser} className="space-y-4">
               <div>
                 <Label htmlFor="name">Nome</Label>
                 <Input
                   id="name"
+                  name="name"
                   placeholder="Nome completo"
                   defaultValue={editingUser?.name}
+                  required
                 />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="email@empresa.com"
                   defaultValue={editingUser?.email}
+                  required
                 />
               </div>
               <div>
                 <Label htmlFor="role">Função</Label>
-                <Select defaultValue={editingUser?.role}>
+                <Select name="role" defaultValue={editingUser?.role}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma função" />
                   </SelectTrigger>
@@ -230,14 +277,14 @@ export default function UsersPage() {
                 </Select>
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={() => setDialogOpen(false)}>
+                <Button type="submit">
                   {editingUser ? 'Salvar' : 'Criar'}
                 </Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

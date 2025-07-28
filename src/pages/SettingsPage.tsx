@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -23,7 +23,9 @@ import {
   AlertTriangle,
   Key,
   Users,
-  Activity
+  Activity,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { usePermissions } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -67,6 +69,15 @@ interface SettingsConfig {
     errorTracking: boolean;
     auditLogging: boolean;
   };
+}
+
+interface DataSource {
+  id: string;
+  name: string;
+  type: 'elastic' | 'trellix' | 'defender' | 'tenable' | 'custom';
+  url: string;
+  status: 'connected' | 'disconnected' | 'error';
+  lastSync: Date;
 }
 
 const DEFAULT_SETTINGS: SettingsConfig = {
@@ -113,6 +124,26 @@ const DEFAULT_SETTINGS: SettingsConfig = {
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsConfig>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
+  const [dataSources, setDataSources] = useState<DataSource[]>([
+    {
+      id: '1',
+      name: 'Elastic SIEM',
+      type: 'elastic',
+      url: 'https://elastic.empresa.com',
+      status: 'connected',
+      lastSync: new Date()
+    },
+    {
+      id: '2', 
+      name: 'Microsoft Defender',
+      type: 'defender',
+      url: 'https://security.microsoft.com',
+      status: 'connected',
+      lastSync: new Date(Date.now() - 1000 * 60 * 30)
+    }
+  ]);
+  const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const permissions = usePermissions();
   const { toast } = useToast();
 
@@ -157,6 +188,80 @@ export default function SettingsPage() {
         },
       },
     }));
+  };
+
+  const handleAddDataSource = () => {
+    setEditingSource(null);
+    setSourceDialogOpen(true);
+  };
+
+  const handleEditDataSource = (source: DataSource) => {
+    setEditingSource(source);
+    setSourceDialogOpen(true);
+  };
+
+  const handleSaveDataSource = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const type = formData.get('type') as DataSource['type'];
+    const url = formData.get('url') as string;
+
+    console.log('Salvando fonte de dados:', { name, type, url });
+
+    if (editingSource) {
+      setDataSources(prev => prev.map(source => 
+        source.id === editingSource.id 
+          ? { ...source, name, type, url, lastSync: new Date() }
+          : source
+      ));
+      toast({
+        title: "Sucesso",
+        description: "Fonte de dados atualizada com sucesso"
+      });
+    } else {
+      const newSource: DataSource = {
+        id: Date.now().toString(),
+        name,
+        type,
+        url,
+        status: 'disconnected',
+        lastSync: new Date()
+      };
+      setDataSources(prev => [...prev, newSource]);
+      toast({
+        title: "Sucesso", 
+        description: "Nova fonte de dados adicionada com sucesso"
+      });
+    }
+    
+    setSourceDialogOpen(false);
+  };
+
+  const handleDeleteDataSource = (sourceId: string) => {
+    setDataSources(prev => prev.filter(source => source.id !== sourceId));
+    toast({
+      title: "Sucesso",
+      description: "Fonte de dados removida com sucesso"
+    });
+  };
+
+  const getStatusColor = (status: DataSource['status']) => {
+    switch (status) {
+      case 'connected': return 'bg-success text-white';
+      case 'disconnected': return 'bg-muted text-muted-foreground';
+      case 'error': return 'bg-critical text-white';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getStatusLabel = (status: DataSource['status']) => {
+    switch (status) {
+      case 'connected': return 'Conectado';
+      case 'disconnected': return 'Desconectado';
+      case 'error': return 'Erro';
+      default: return status;
+    }
   };
 
   if (!permissions.canConfigureAlerts) {
@@ -513,10 +618,122 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Configurações de Integrações
+                Gerenciar Fontes de Dados
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Fontes de Dados Conectadas</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Gerencie as fontes de dados de segurança integradas
+                  </p>
+                </div>
+                <Dialog open={sourceDialogOpen} onOpenChange={setSourceDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={handleAddDataSource} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar Fonte
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingSource ? 'Editar Fonte de Dados' : 'Nova Fonte de Dados'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveDataSource} className="space-y-4">
+                      <div>
+                        <Label htmlFor="source-name">Nome da Fonte</Label>
+                        <Input
+                          id="source-name"
+                          name="name"
+                          placeholder="Ex: Elastic SIEM Principal"
+                          defaultValue={editingSource?.name}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="source-type">Tipo</Label>
+                        <Select name="type" defaultValue={editingSource?.type}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="elastic">Elastic Stack</SelectItem>
+                            <SelectItem value="trellix">Trellix SIEM</SelectItem>
+                            <SelectItem value="defender">Microsoft Defender</SelectItem>
+                            <SelectItem value="tenable">Tenable</SelectItem>
+                            <SelectItem value="custom">Customizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="source-url">URL/Endpoint</Label>
+                        <Input
+                          id="source-url"
+                          name="url"
+                          type="url"
+                          placeholder="https://siem.empresa.com"
+                          defaultValue={editingSource?.url}
+                          required
+                        />
+                      </div>
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          onClick={() => setSourceDialogOpen(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button type="submit">
+                          {editingSource ? 'Salvar' : 'Adicionar'}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="space-y-4">
+                {dataSources.map((source) => (
+                  <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-semibold">{source.name}</h4>
+                        <Badge className={getStatusColor(source.status)}>
+                          {getStatusLabel(source.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{source.url}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Última sincronização: {source.lastSync.toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditDataSource(source)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteDataSource(source.id)}
+                        className="text-critical hover:text-critical"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Separator />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="apiRateLimit">Limite de Taxa da API (req/min)</Label>
