@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Database, Plus, Settings, Activity, AlertCircle, CheckCircle, Clock, Edit } from 'lucide-react';
+import { Database, Plus, Settings, Activity, AlertCircle, CheckCircle, Clock, Edit, Trash2 } from 'lucide-react';
 import { usePermissions } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -266,6 +266,15 @@ export default function IntegrationsPage() {
     setDialogOpen(false);
   };
 
+  const handleDeleteIntegration = (id: string) => {
+    const integration = integrations.find(i => i.id === id);
+    setIntegrations(prev => prev.filter(i => i.id !== id));
+    toast({
+      title: "Sucesso",
+      description: `${integration?.name} removida com sucesso`
+    });
+  };
+
   const stats = {
     total: integrations.length,
     connected: integrations.filter(i => i.status === 'connected').length,
@@ -515,6 +524,14 @@ export default function IntegrationsPage() {
                     onClick={() => handleEditIntegration(integration)}
                   >
                     <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteIntegration(integration.id)}
+                    className="text-critical hover:text-critical"
+                  >
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>

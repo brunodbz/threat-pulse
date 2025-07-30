@@ -40,6 +40,53 @@ export default function AnalyticsPage() {
     }
   };
 
+  const handleExportData = () => {
+    try {
+      const exportData = {
+        timeRange,
+        metrics: data,
+        events: events.map(event => ({
+          id: event.id,
+          title: event.title,
+          severity: event.severity,
+          source: event.source,
+          status: event.status,
+          timestamp: event.timestamp.toISOString()
+        })),
+        charts: {
+          severityData,
+          sourceData,
+          trendData,
+          statusData
+        },
+        exportedAt: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Sucesso",
+        description: "Dados de analytics exportados com sucesso"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro", 
+        description: "Falha ao exportar dados",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading || !data) {
     return (
       <div className="p-6 flex justify-center items-center min-h-96">
@@ -99,7 +146,7 @@ export default function AnalyticsPage() {
               <SelectItem value="90d">Últimos 90 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="gap-2">
+          <Button onClick={handleExportData} className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
           </Button>

@@ -45,6 +45,49 @@ export default function AuditPage() {
     }
   };
 
+  const handleExportLogs = () => {
+    try {
+      const exportData = {
+        filters,
+        stats,
+        logs: filteredLogs.map(log => ({
+          id: log.id,
+          timestamp: log.timestamp.toISOString(),
+          user: log.user,
+          action: log.action,
+          resource: log.resource,
+          status: log.status,
+          ip: log.ip,
+          details: log.details
+        })),
+        exportedAt: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-logs-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Sucesso",
+        description: "Logs de auditoria exportados com sucesso"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao exportar logs",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success': return 'bg-success text-white';
@@ -105,7 +148,7 @@ export default function AuditPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button className="gap-2">
+          <Button onClick={handleExportLogs} className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
           </Button>
