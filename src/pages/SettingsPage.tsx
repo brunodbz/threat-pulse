@@ -121,8 +121,30 @@ const DEFAULT_SETTINGS: SettingsConfig = {
   },
 };
 
+// Função para carregar configurações do localStorage
+const loadSettingsFromStorage = (): SettingsConfig => {
+  try {
+    const stored = localStorage.getItem('system-settings');
+    if (stored) {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações:', error);
+  }
+  return DEFAULT_SETTINGS;
+};
+
+// Função para salvar configurações no localStorage
+const saveSettingsToStorage = (settings: SettingsConfig) => {
+  try {
+    localStorage.setItem('system-settings', JSON.stringify(settings));
+  } catch (error) {
+    console.error('Erro ao salvar configurações:', error);
+  }
+};
+
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<SettingsConfig>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<SettingsConfig>(() => loadSettingsFromStorage());
   const [saving, setSaving] = useState(false);
   const [dataSources, setDataSources] = useState<DataSource[]>([
     {
@@ -150,8 +172,12 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Salvar no localStorage
+      saveSettingsToStorage(settings);
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
       toast({
         title: "Sucesso",
         description: "Configurações salvas com sucesso"
@@ -168,13 +194,16 @@ export default function SettingsPage() {
   };
 
   const updateSetting = (section: keyof SettingsConfig, key: string, value: any) => {
-    setSettings(prev => ({
-      ...prev,
+    const newSettings = {
+      ...settings,
       [section]: {
-        ...prev[section],
+        ...settings[section],
         [key]: value,
       },
-    }));
+    };
+    setSettings(newSettings);
+    // Salvar automaticamente no localStorage
+    saveSettingsToStorage(newSettings);
   };
 
   const updatePasswordPolicy = (key: string, value: any) => {

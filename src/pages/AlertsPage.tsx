@@ -9,12 +9,27 @@ import { SecurityEvent } from '@/types/security';
 import { mockApi } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 
+// Função para carregar configurações do localStorage
+const loadAlertSettings = () => {
+  try {
+    const stored = localStorage.getItem('system-settings');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      return settings.alerts?.criticalOnly || false;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações de alertas:', error);
+  }
+  return false;
+};
+
 export default function AlertsPage() {
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [criticalOnlyEnabled, setCriticalOnlyEnabled] = useState(() => loadAlertSettings());
   const [filters, setFilters] = useState({
     source: 'all',
-    severity: 'all',
+    severity: criticalOnlyEnabled ? 'critical' : 'all',
     status: 'all',
     search: ''
   });
@@ -23,6 +38,29 @@ export default function AlertsPage() {
   useEffect(() => {
     loadEvents();
   }, [filters.source, filters.severity, filters.status]);
+
+  // Monitorar mudanças nas configurações de alertas
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const criticalOnly = loadAlertSettings();
+      setCriticalOnlyEnabled(criticalOnly);
+      setFilters(prev => ({
+        ...prev,
+        severity: criticalOnly ? 'critical' : 'all'
+      }));
+    };
+
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Verificar periodicamente as configurações (para mudanças na mesma aba)
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const loadEvents = async () => {
     setLoading(true);

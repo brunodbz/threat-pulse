@@ -61,7 +61,10 @@ export default function AnalyticsPage() {
           severity: event.severity,
           source: event.source,
           status: event.status,
-          timestamp: event.timestamp
+          timestamp: event.timestamp,
+          tags: event.tags || [],
+          details: event.details || {},
+          assignee: event.assignee
         })),
         charts: {
           severityData,
