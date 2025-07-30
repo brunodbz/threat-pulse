@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
+import { MFAVerification } from '@/components/auth/MFAVerification';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -43,6 +44,8 @@ const DEMO_USERS = [
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showMFAVerification, setShowMFAVerification] = useState(false);
+  const [pendingUser, setPendingUser] = useState<User | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in (from localStorage)
@@ -74,18 +77,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastLogin: new Date(),
       };
       
-      setUser(userData);
-      localStorage.setItem('securityDashboardUser', JSON.stringify(userData));
-      setIsLoading(false);
-      return true;
+      // Check if MFA is enabled
+      const mfaEnabled = localStorage.getItem('mfaEnabled') === 'true';
+      
+      if (mfaEnabled) {
+        // Show MFA verification
+        setPendingUser(userData);
+        setShowMFAVerification(true);
+        setIsLoading(false);
+        return true; // Login credentials are correct, now need MFA
+      } else {
+        // Complete login without MFA
+        setUser(userData);
+        localStorage.setItem('securityDashboardUser', JSON.stringify(userData));
+        setIsLoading(false);
+        return true;
+      }
     }
     
     setIsLoading(false);
     return false;
   };
 
+  const handleMFAVerificationSuccess = () => {
+    if (pendingUser) {
+      setUser(pendingUser);
+      localStorage.setItem('securityDashboardUser', JSON.stringify(pendingUser));
+      setPendingUser(null);
+      setShowMFAVerification(false);
+    }
+  };
+
+  const handleMFAVerificationCancel = () => {
+    setPendingUser(null);
+    setShowMFAVerification(false);
+  };
+
   const logout = () => {
     setUser(null);
+    setPendingUser(null);
+    setShowMFAVerification(false);
     localStorage.removeItem('securityDashboardUser');
   };
 
@@ -99,6 +130,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      {showMFAVerification && pendingUser && (
+        <MFAVerification
+          onVerificationSuccess={handleMFAVerificationSuccess}
+          onCancel={handleMFAVerificationCancel}
+          userEmail={pendingUser.email}
+        />
+      )}
     </AuthContext.Provider>
   );
 }

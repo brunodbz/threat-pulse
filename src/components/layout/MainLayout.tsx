@@ -1,11 +1,14 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { Bell, Search, Settings } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/layout/NotificationBell';
+import { ProfileSettings } from '@/components/profile/ProfileSettings';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -13,6 +16,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { user } = useAuth();
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   if (!user) {
     return <LoginForm />;
@@ -42,15 +46,14 @@ export function MainLayout({ children }: MainLayoutProps) {
 
             <div className="flex items-center space-x-4">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-critical text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <NotificationBell />
 
               {/* Settings */}
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowProfileSettings(true)}
+              >
                 <Settings className="h-5 w-5" />
               </Button>
 
@@ -76,6 +79,11 @@ export function MainLayout({ children }: MainLayoutProps) {
           </main>
         </div>
       </div>
+
+      <ProfileSettings 
+        isOpen={showProfileSettings}
+        onClose={() => setShowProfileSettings(false)}
+      />
     </SidebarProvider>
   );
 }

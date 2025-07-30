@@ -4,10 +4,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { BarChart3, TrendingUp, AlertTriangle, Shield, Download, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Shield, Download, Calendar, FileText, Table } from 'lucide-react';
 import { SecurityEvent, DashboardMetrics } from '@/types/security';
 import { mockApi } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import { exportToPDF, exportToCSV, exportToJSON } from '@/utils/exportUtils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<DashboardMetrics | null>(null);
@@ -40,7 +47,9 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handleExportData = () => {
+  const handleExport = (format: 'pdf' | 'csv' | 'json') => {
+    if (!data) return;
+
     try {
       const exportData = {
         timeRange,
@@ -48,10 +57,11 @@ export default function AnalyticsPage() {
         events: events.map(event => ({
           id: event.id,
           title: event.title,
+          description: event.description,
           severity: event.severity,
           source: event.source,
           status: event.status,
-          timestamp: event.timestamp.toISOString()
+          timestamp: event.timestamp
         })),
         charts: {
           severityData,
@@ -62,21 +72,23 @@ export default function AnalyticsPage() {
         exportedAt: new Date().toISOString()
       };
 
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: 'application/json'
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = `analytics-export-${new Date().toISOString().split('T')[0]}`;
+
+      switch (format) {
+        case 'pdf':
+          exportToPDF(exportData, filename);
+          break;
+        case 'csv':
+          exportToCSV(exportData, filename);
+          break;
+        case 'json':
+          exportToJSON(exportData, filename);
+          break;
+      }
 
       toast({
         title: "Sucesso",
-        description: "Dados de analytics exportados com sucesso"
+        description: `Dados exportados em ${format.toUpperCase()} com sucesso`
       });
     } catch (error) {
       toast({
@@ -146,10 +158,29 @@ export default function AnalyticsPage() {
               <SelectItem value="90d">Últimos 90 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleExportData} className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                <Table className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
