@@ -23,10 +23,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { mockApi, simulateRealTimeAlert } from '@/data/mockData';
 import { DashboardMetrics, SecurityEvent } from '@/types/security';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [realtimeAlerts, setRealtimeAlerts] = useState<SecurityEvent[]>([]);
@@ -225,13 +227,7 @@ export default function Dashboard() {
         {/* Security Events by Source */}
         <Card className="bg-gradient-card border-border shadow-card">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Eventos por Fonte</span>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
-            </CardTitle>
+            <CardTitle>Eventos por Fonte</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -269,7 +265,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Atividade Recente</span>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate('/audit')}>
                 <Eye className="h-4 w-4 mr-2" />
                 Ver Todas
               </Button>
@@ -309,7 +305,7 @@ export default function Dashboard() {
               <Badge variant="outline">
                 {metrics.events.length} total
               </Badge>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate('/alerts')}>
                 <Eye className="h-4 w-4 mr-2" />
                 Ver Todos
               </Button>

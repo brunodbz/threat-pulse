@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ interface Integration {
   config: {
     endpoint?: string;
     apiKey?: string;
+    accessKey?: string;
+    secretKey?: string;
     enabled: boolean;
   };
   metrics: {
@@ -133,6 +135,7 @@ export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>(MOCK_INTEGRATIONS);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
+  const [currentName, setCurrentName] = useState('');
   const permissions = usePermissions();
   const { toast } = useToast();
 
@@ -202,11 +205,13 @@ export default function IntegrationsPage() {
 
   const handleCreateIntegration = () => {
     setEditingIntegration(null);
+    setCurrentName('');
     setDialogOpen(true);
   };
 
   const handleEditIntegration = (integration: Integration) => {
     setEditingIntegration(integration);
+    setCurrentName(integration.name);
     setDialogOpen(true);
   };
 
@@ -218,9 +223,11 @@ export default function IntegrationsPage() {
     const description = formData.get('description') as string;
     const endpoint = formData.get('endpoint') as string;
     const apiKey = formData.get('apiKey') as string;
+    const accessKey = formData.get('accessKey') as string;
+    const secretKey = formData.get('secretKey') as string;
     const enabled = formData.get('enabled') === 'on';
 
-    console.log('Salvando integração:', { name, type, description, endpoint, apiKey, enabled });
+    console.log('Salvando integração:', { name, type, description, endpoint, apiKey, accessKey, secretKey, enabled });
 
     if (editingIntegration) {
       setIntegrations(prev => prev.map(integration => 
@@ -230,7 +237,7 @@ export default function IntegrationsPage() {
               name, 
               type, 
               description,
-              config: { endpoint, apiKey, enabled },
+              config: { endpoint, apiKey, accessKey, secretKey, enabled },
               status: enabled ? 'connected' : 'disconnected',
               lastSync: new Date()
             }
@@ -249,7 +256,7 @@ export default function IntegrationsPage() {
         status: enabled ? 'connected' : 'disconnected',
         lastSync: enabled ? new Date() : null,
         icon: '🔗',
-        config: { endpoint, apiKey, enabled },
+        config: { endpoint, apiKey, accessKey, secretKey, enabled },
         metrics: {
           eventsToday: 0,
           totalEvents: 0,
@@ -325,6 +332,7 @@ export default function IntegrationsPage() {
                     name="name"
                     placeholder="Nome da integração"
                     defaultValue={editingIntegration?.name}
+                    onChange={(e) => setCurrentName(e.target.value)}
                     required
                   />
                 </div>
@@ -358,16 +366,42 @@ export default function IntegrationsPage() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="apiKey">API Key</Label>
-                <Input
-                  id="apiKey"
-                  name="apiKey"
-                  type="password"
-                  placeholder="Chave da API"
-                  defaultValue={editingIntegration?.config.apiKey}
-                />
-              </div>
+              {/* Campos específicos para Tenable */}
+              {(editingIntegration?.name === 'Tenable.io' || (!editingIntegration && currentName === 'Tenable.io')) ? (
+                <>
+                  <div>
+                    <Label htmlFor="accessKey">Access Key</Label>
+                    <Input
+                      id="accessKey"
+                      name="accessKey"
+                      type="password"
+                      placeholder="Access Key do Tenable"
+                      defaultValue={editingIntegration?.config.accessKey}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="secretKey">Secret Key</Label>
+                    <Input
+                      id="secretKey"
+                      name="secretKey"
+                      type="password"
+                      placeholder="Secret Key do Tenable"
+                      defaultValue={editingIntegration?.config.secretKey}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    name="apiKey"
+                    type="password"
+                    placeholder="Chave da API"
+                    defaultValue={editingIntegration?.config.apiKey}
+                  />
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Switch
                   id="enabled"
