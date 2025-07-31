@@ -131,13 +131,41 @@ const MOCK_INTEGRATIONS: Integration[] = [
   },
 ];
 
+// Função para carregar integrações do localStorage
+const loadIntegrations = (): Integration[] => {
+  try {
+    const stored = localStorage.getItem('integrations-data');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar integrações:', error);
+  }
+  return MOCK_INTEGRATIONS;
+};
+
+// Função para salvar integrações no localStorage
+const saveIntegrations = (integrations: Integration[]) => {
+  try {
+    localStorage.setItem('integrations-data', JSON.stringify(integrations));
+  } catch (error) {
+    console.error('Erro ao salvar integrações:', error);
+  }
+};
+
 export default function IntegrationsPage() {
-  const [integrations, setIntegrations] = useState<Integration[]>(MOCK_INTEGRATIONS);
+  const [integrations, setIntegrations] = useState<Integration[]>(() => loadIntegrations());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
   const [currentName, setCurrentName] = useState('');
   const permissions = usePermissions();
   const { toast } = useToast();
+
+  // Função para atualizar integrações e salvar no localStorage
+  const updateIntegrations = (newIntegrations: Integration[]) => {
+    setIntegrations(newIntegrations);
+    saveIntegrations(newIntegrations);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -170,15 +198,16 @@ export default function IntegrationsPage() {
   };
 
   const handleToggleIntegration = (id: string) => {
-    setIntegrations(prev => prev.map(integration => 
+    const newIntegrations = integrations.map(integration => 
       integration.id === id 
         ? { 
             ...integration, 
             config: { ...integration.config, enabled: !integration.config.enabled },
-            status: integration.config.enabled ? 'disconnected' : 'connected'
+            status: (integration.config.enabled ? 'disconnected' : 'connected') as Integration['status']
           }
         : integration
-    ));
+    );
+    updateIntegrations(newIntegrations);
     
     const integration = integrations.find(i => i.id === id);
     toast({
@@ -230,7 +259,7 @@ export default function IntegrationsPage() {
     console.log('Salvando integração:', { name, type, description, endpoint, apiKey, accessKey, secretKey, enabled });
 
     if (editingIntegration) {
-      setIntegrations(prev => prev.map(integration => 
+      const updatedIntegrations = integrations.map(integration => 
         integration.id === editingIntegration.id 
           ? { 
               ...integration, 
@@ -238,11 +267,12 @@ export default function IntegrationsPage() {
               type, 
               description,
               config: { endpoint, apiKey, accessKey, secretKey, enabled },
-              status: enabled ? 'connected' : 'disconnected',
+              status: (enabled ? 'connected' : 'disconnected') as Integration['status'],
               lastSync: new Date()
             }
           : integration
-      ));
+      );
+      updateIntegrations(updatedIntegrations);
       toast({
         title: "Sucesso",
         description: "Integração atualizada com sucesso"
@@ -253,7 +283,7 @@ export default function IntegrationsPage() {
         name,
         type,
         description,
-        status: enabled ? 'connected' : 'disconnected',
+        status: (enabled ? 'connected' : 'disconnected') as Integration['status'],
         lastSync: enabled ? new Date() : null,
         icon: '🔗',
         config: { endpoint, apiKey, accessKey, secretKey, enabled },
@@ -263,7 +293,7 @@ export default function IntegrationsPage() {
           errorRate: 0
         }
       };
-      setIntegrations(prev => [...prev, newIntegration]);
+      updateIntegrations([...integrations, newIntegration]);
       toast({
         title: "Sucesso",
         description: "Nova integração criada com sucesso"
@@ -275,7 +305,8 @@ export default function IntegrationsPage() {
 
   const handleDeleteIntegration = (id: string) => {
     const integration = integrations.find(i => i.id === id);
-    setIntegrations(prev => prev.filter(i => i.id !== id));
+    const newIntegrations = integrations.filter(i => i.id !== id);
+    updateIntegrations(newIntegrations);
     toast({
       title: "Sucesso",
       description: `${integration?.name} removida com sucesso`
