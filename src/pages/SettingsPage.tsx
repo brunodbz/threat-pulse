@@ -143,10 +143,20 @@ const saveSettingsToStorage = (settings: SettingsConfig) => {
   }
 };
 
-export default function SettingsPage() {
-  const [settings, setSettings] = useState<SettingsConfig>(() => loadSettingsFromStorage());
-  const [saving, setSaving] = useState(false);
-  const [dataSources, setDataSources] = useState<DataSource[]>([
+// Função para carregar fontes de dados do localStorage
+const loadDataSourcesFromStorage = (): DataSource[] => {
+  try {
+    const stored = localStorage.getItem('data-sources');
+    if (stored) {
+      return JSON.parse(stored).map((source: any) => ({
+        ...source,
+        lastSync: new Date(source.lastSync)
+      }));
+    }
+  } catch (error) {
+    console.error('Erro ao carregar fontes de dados:', error);
+  }
+  return [
     {
       id: '1',
       name: 'Elastic SIEM',
@@ -163,7 +173,22 @@ export default function SettingsPage() {
       status: 'connected',
       lastSync: new Date(Date.now() - 1000 * 60 * 30)
     }
-  ]);
+  ];
+};
+
+// Função para salvar fontes de dados no localStorage
+const saveDataSourcesToStorage = (dataSources: DataSource[]) => {
+  try {
+    localStorage.setItem('data-sources', JSON.stringify(dataSources));
+  } catch (error) {
+    console.error('Erro ao salvar fontes de dados:', error);
+  }
+};
+
+export default function SettingsPage() {
+  const [settings, setSettings] = useState<SettingsConfig>(() => loadSettingsFromStorage());
+  const [saving, setSaving] = useState(false);
+  const [dataSources, setDataSources] = useState<DataSource[]>(() => loadDataSourcesFromStorage());
   const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const permissions = usePermissions();
@@ -239,11 +264,13 @@ export default function SettingsPage() {
     console.log('Salvando fonte de dados:', { name, type, url });
 
     if (editingSource) {
-      setDataSources(prev => prev.map(source => 
+      const updatedSources = dataSources.map(source => 
         source.id === editingSource.id 
           ? { ...source, name, type, url, lastSync: new Date() }
           : source
-      ));
+      );
+      setDataSources(updatedSources);
+      saveDataSourcesToStorage(updatedSources);
       toast({
         title: "Sucesso",
         description: "Fonte de dados atualizada com sucesso"
@@ -257,7 +284,9 @@ export default function SettingsPage() {
         status: 'disconnected',
         lastSync: new Date()
       };
-      setDataSources(prev => [...prev, newSource]);
+      const updatedSources = [...dataSources, newSource];
+      setDataSources(updatedSources);
+      saveDataSourcesToStorage(updatedSources);
       toast({
         title: "Sucesso", 
         description: "Nova fonte de dados adicionada com sucesso"
@@ -268,7 +297,9 @@ export default function SettingsPage() {
   };
 
   const handleDeleteDataSource = (sourceId: string) => {
-    setDataSources(prev => prev.filter(source => source.id !== sourceId));
+    const updatedSources = dataSources.filter(source => source.id !== sourceId);
+    setDataSources(updatedSources);
+    saveDataSourcesToStorage(updatedSources);
     toast({
       title: "Sucesso",
       description: "Fonte de dados removida com sucesso"
