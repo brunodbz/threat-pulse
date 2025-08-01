@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MFASetup } from '@/components/auth/MFASetup';
+import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { 
   User, 
   Mail, 
@@ -49,6 +50,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
   });
 
   const [showMFASetup, setShowMFASetup] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(localStorage.getItem('mfaEnabled') === 'true');
 
   const handleSave = () => {
@@ -189,7 +191,11 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
 
                 <Separator />
 
-                <Button variant="outline" className="gap-2">
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => setShowChangePassword(true)}
+                >
                   <Lock className="h-4 w-4" />
                   Alterar Senha
                 </Button>
@@ -300,6 +306,11 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         onClose={() => setShowMFASetup(false)}
         onSetupComplete={handleMFASetupComplete}
         userEmail={user.email}
+      />
+
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
       />
     </>
   );

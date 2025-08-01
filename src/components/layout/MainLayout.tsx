@@ -5,10 +5,11 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { Search, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { GlobalSearch } from '@/components/layout/GlobalSearch';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -33,14 +34,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div className="hidden md:flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Buscar eventos, usuários, alertas..."
-                    className="pl-10 pr-4 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-80"
-                  />
-                </div>
+                <GlobalSearch />
               </div>
             </div>
 
