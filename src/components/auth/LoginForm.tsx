@@ -130,26 +130,6 @@ export function LoginForm() {
           </form>
         </Card>
 
-        {/* Credenciais de demonstração */}
-        <Card className="bg-muted/10 border-muted/20">
-          <CardContent className="p-4">
-            <h3 className="font-medium mb-3 text-sm">Credenciais de Demonstração:</h3>
-            <div className="space-y-2 text-xs text-muted-foreground">
-              <div className="flex justify-between">
-                <span className="font-medium">Admin:</span>
-                <span>admin@empresa.com / admin123</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Gestor:</span>
-                <span>gestor@empresa.com / gestor123</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Analista:</span>
-                <span>analista@empresa.com / analista123</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

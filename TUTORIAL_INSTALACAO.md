@@ -88,19 +88,21 @@ npm run preview      # Visualiza build de produção
 npm run lint         # Verifica código
 ```
 
-## 🔐 Credenciais de Demo
+## 🔐 Configuração de Autenticação
 
-### Admin
-- **Email:** admin@security.com
-- **Senha:** admin123
+Esta aplicação está preparada para integração com sistemas de autenticação reais. Você precisará configurar um dos seguintes:
 
-### Manager
-- **Email:** manager@security.com
-- **Senha:** manager123
+### Opções de Integração:
+- **Supabase Auth** (Recomendado)
+- **Firebase Authentication**
+- **Auth0**
+- **Custom API**
 
-### Analyst
-- **Email:** analyst@security.com
-- **Senha:** analyst123
+### Próximos Passos:
+1. Configure seu sistema de autenticação preferido
+2. Atualize o `AuthContext.tsx` com a lógica real de login
+3. Implemente o gerenciamento de usuários no backend
+4. Configure as permissões e roles conforme necessário
 
 ## 🗂️ Estrutura do Projeto
 
@@ -183,11 +185,11 @@ npm install
 
 ## 🎯 Próximos Passos
 
-1. Faça login com uma das credenciais de demo
-2. Explore o dashboard principal
-3. Teste as diferentes funcionalidades
-4. Configure integrações conforme necessário
-5. Personalize o tema e configurações
+1. Configure um sistema de autenticação (Supabase, Firebase, etc.)
+2. Implemente a lógica de login real no `AuthContext.tsx`
+3. Configure as integrações de segurança necessárias
+4. Substitua os dados mock por dados reais das suas ferramentas
+5. Personalize o tema e configurações conforme sua marca
 
 ---
 
