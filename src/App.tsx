@@ -13,6 +13,7 @@ import UsersPage from "./pages/UsersPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import { AuthPage } from "./pages/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={
               <MainLayout>
                 <Dashboard />

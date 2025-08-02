@@ -1,47 +1,89 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 import { MFAVerification } from '@/components/auth/MFAVerification';
+import { supabase } from '@/integrations/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// TODO: Replace with real authentication system (Supabase Auth, Firebase Auth, etc.)
-// This should connect to your actual user management system
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showMFAVerification, setShowMFAVerification] = useState(false);
   const [pendingUser, setPendingUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in (from localStorage)
-    const savedUser = localStorage.getItem('securityDashboardUser');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('securityDashboardUser');
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer profile fetching to prevent deadlocks
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select(`
+                  *,
+                  user_roles (role)
+                `)
+                .eq('user_id', session.user.id)
+                .single();
+
+              if (profile) {
+                const userData: User = {
+                  id: profile.user_id,
+                  email: profile.email,
+                  name: profile.name,
+                  role: (profile.user_roles?.[0] as any)?.role || 'analista',
+                  avatar: profile.avatar_url,
+                  createdAt: new Date(profile.created_at),
+                  lastLogin: new Date(),
+                  isActive: true
+                };
+                setUser(userData);
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // TODO: Implement real authentication logic here
-      // Example integrations:
-      // - Supabase: supabase.auth.signInWithPassword({ email, password })
-      // - Firebase: signInWithEmailAndPassword(auth, email, password)
-      // - Custom API: await authApi.login(email, password)
-      
-      // For now, return false as no authentication system is configured
-      console.log('Authentication system not configured. Please implement real authentication.');
-      setIsLoading(false);
-      return false;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setIsLoading(false);
+        return false;
+      }
+
+      // Auth state change will be handled by the listener
+      return true;
     } catch (error) {
       console.error('Authentication error:', error);
       setIsLoading(false);
@@ -63,11 +105,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setShowMFAVerification(false);
   };
 
-  const logout = () => {
-    setUser(null);
-    setPendingUser(null);
-    setShowMFAVerification(false);
-    localStorage.removeItem('securityDashboardUser');
+  const logout = async () => {
+    try {
+      // Clean up auth state
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Ignore errors
+      }
+      
+      setUser(null);
+      setSession(null);
+      setPendingUser(null);
+      setShowMFAVerification(false);
+      localStorage.removeItem('securityDashboardUser');
+      
+      // Force page reload for clean state
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const value: AuthContextType = {
