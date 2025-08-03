@@ -151,7 +151,10 @@ export function AuthPage() {
 
       if (data.user) {
         if (data.user.email_confirmed_at) {
-          // User is automatically confirmed, redirect
+          // User is automatically confirmed, redirect immediately
+          window.location.href = '/dashboard';
+        } else if (data.session) {
+          // User created but needs email confirmation, but session exists - redirect anyway
           window.location.href = '/dashboard';
         } else {
           setMessage('Conta criada! Verifique seu email para confirmar o cadastro.');
