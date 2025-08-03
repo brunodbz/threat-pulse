@@ -93,9 +93,14 @@ export function AuthPage() {
         return;
       }
 
-      if (data.user) {
-        // Force page reload for clean state
-        window.location.href = '/dashboard';
+      if (data.user && data.session) {
+        setMessage('Login realizado com sucesso! Redirecionando...');
+        // Small delay to show message then redirect
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
+      } else {
+        setError('Erro no login. Sessão não foi criada corretamente.');
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');
@@ -124,26 +129,9 @@ export function AuthPage() {
     }
 
     try {
-      // Verificar se o usuário já existe
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: 'dummy'
-      });
-
-      if (existingUser.user) {
-        setError('Este email já possui uma conta. Use a opção "Entrar".');
-        setIsLoading(false);
-        return;
-      }
-    } catch (checkError: any) {
-      // Se der erro, significa que não existe ou senha errada, continue
-    }
-
-    try {
-      // Clean up existing state
+      // Clean up existing state first
       cleanupAuthState();
       
-      // Attempt global sign out
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
@@ -161,8 +149,8 @@ export function AuthPage() {
       });
 
       if (error) {
-        if (error.message.includes('User already registered')) {
-          setError('Este email já está cadastrado. Tente fazer login.');
+        if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+          setError('Este email já possui uma conta. Use a aba "Entrar" para fazer login.');
         } else if (error.message.includes('Password should be at least')) {
           setError('A senha deve ter pelo menos 6 caracteres.');
         } else if (error.message.includes('Invalid email')) {
@@ -174,27 +162,29 @@ export function AuthPage() {
       }
 
       if (data.user) {
-        setMessage('Conta criada com sucesso! Fazendo login...');
-        // Fazer login imediatamente após criar a conta
-        setTimeout(async () => {
-          try {
-            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-              email: formData.email,
-              password: formData.password,
-            });
+        // Try immediate login after signup
+        setMessage('Conta criada! Fazendo login...');
+        
+        try {
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
 
-            if (loginError) {
-              setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
-              return;
-            }
-
-            if (loginData.user) {
-              window.location.href = '/dashboard';
-            }
-          } catch (loginErr) {
-            setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
+          if (loginError) {
+            setError('Conta criada, mas erro no login. Tente fazer login na aba "Entrar".');
+            return;
           }
-        }, 1000);
+
+          if (loginData.user && loginData.session) {
+            setMessage('Login realizado com sucesso! Redirecionando...');
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 1000);
+          }
+        } catch (loginErr) {
+          setError('Conta criada, mas erro no login automático. Use a aba "Entrar".');
+        }
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');
