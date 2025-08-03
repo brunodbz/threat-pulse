@@ -20,6 +20,7 @@ export function AuthPage() {
     name: '',
     confirmPassword: ''
   });
+  const [resetEmail, setResetEmail] = useState('');
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -149,21 +150,45 @@ export function AuthPage() {
         return;
       }
 
-      if (data.user) {
-        if (data.user.email_confirmed_at) {
-          // User is automatically confirmed, redirect immediately
+      if (data.user && data.session) {
+        // User created and session exists - redirect immediately
+        setMessage('Conta criada com sucesso! Redirecionando...');
+        setTimeout(() => {
           window.location.href = '/dashboard';
-        } else if (data.session) {
-          // User created but needs email confirmation, but session exists - redirect anyway
-          window.location.href = '/dashboard';
-        } else {
-          setMessage('Conta criada! Verifique seu email para confirmar o cadastro.');
-          setFormData({ email: '', password: '', name: '', confirmPassword: '' });
-        }
+        }, 1000);
+      } else if (data.user) {
+        setMessage('Conta criada! Verifique seu email para confirmar o cadastro.');
+        setFormData({ email: '', password: '', name: '', confirmPassword: '' });
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');
       console.error('Sign up error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        setError('Erro ao enviar email de recuperação. Verifique o endereço.');
+        return;
+      }
+
+      setMessage('Email de recuperação enviado! Verifique sua caixa de entrada.');
+      setResetEmail('');
+    } catch (error: any) {
+      setError('Erro inesperado. Tente novamente.');
+      console.error('Password reset error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -186,9 +211,10 @@ export function AuthPage() {
         
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+              <TabsTrigger value="reset">Recuperar</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin" className="space-y-4">
@@ -334,6 +360,50 @@ export function AuthPage() {
                     </>
                   ) : (
                     'Criar Conta'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="reset" className="space-y-4">
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {message && (
+                  <Alert>
+                    <AlertDescription>{message}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Enviar Email de Recuperação'
                   )}
                 </Button>
               </form>
