@@ -21,13 +21,23 @@ export function AuthPage() {
     confirmPassword: ''
   });
   const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Redirect if already authenticated
+  // Check for password reset flow and redirect if already authenticated
   useEffect(() => {
-    if (user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReset = urlParams.get('reset');
+    
+    if (isReset === 'true') {
+      setIsResettingPassword(true);
+    }
+    
+    if (user && !isReset) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -114,6 +124,22 @@ export function AuthPage() {
     }
 
     try {
+      // Verificar se o usuário já existe
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: 'dummy'
+      });
+
+      if (existingUser.user) {
+        setError('Este email já possui uma conta. Use a opção "Entrar".');
+        setIsLoading(false);
+        return;
+      }
+    } catch (checkError: any) {
+      // Se der erro, significa que não existe ou senha errada, continue
+    }
+
+    try {
       // Clean up existing state
       cleanupAuthState();
       
@@ -124,13 +150,10 @@ export function AuthPage() {
         // Continue even if this fails
       }
 
-      const redirectUrl = `${window.location.origin}/dashboard`;
-      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             name: formData.name
           }
@@ -150,15 +173,28 @@ export function AuthPage() {
         return;
       }
 
-      if (data.user && data.session) {
-        // User created and session exists - redirect immediately
-        setMessage('Conta criada com sucesso! Redirecionando...');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
+      if (data.user) {
+        setMessage('Conta criada com sucesso! Fazendo login...');
+        // Fazer login imediatamente após criar a conta
+        setTimeout(async () => {
+          try {
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+              email: formData.email,
+              password: formData.password,
+            });
+
+            if (loginError) {
+              setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
+              return;
+            }
+
+            if (loginData.user) {
+              window.location.href = '/dashboard';
+            }
+          } catch (loginErr) {
+            setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
+          }
         }, 1000);
-      } else if (data.user) {
-        setMessage('Conta criada! Verifique seu email para confirmar o cadastro.');
-        setFormData({ email: '', password: '', name: '', confirmPassword: '' });
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');
@@ -194,6 +230,46 @@ export function AuthPage() {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setMessage('');
+
+    if (newPassword !== confirmNewPassword) {
+      setError('As senhas não coincidem.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        setError('Erro ao alterar a senha. Tente novamente.');
+        return;
+      }
+
+      setMessage('Senha alterada com sucesso! Redirecionando...');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 2000);
+    } catch (error: any) {
+      setError('Erro inesperado. Tente novamente.');
+      console.error('Password update error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md">
@@ -210,6 +286,67 @@ export function AuthPage() {
         </CardHeader>
         
         <CardContent>
+          {isResettingPassword ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-center">Definir Nova Senha</h3>
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nova Senha</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={isLoading}
+                    minLength={6}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirmar Nova Senha</Label>
+                  <Input
+                    id="confirm-new-password"
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={isLoading}
+                    minLength={6}
+                  />
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {message && (
+                  <Alert>
+                    <AlertDescription>{message}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Alterando senha...
+                    </>
+                  ) : (
+                    'Alterar Senha'
+                  )}
+                </Button>
+              </form>
+            </div>
+          ) : (
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
@@ -409,6 +546,7 @@ export function AuthPage() {
               </form>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>
