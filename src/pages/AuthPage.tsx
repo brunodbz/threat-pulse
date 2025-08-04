@@ -67,16 +67,6 @@ export function AuthPage() {
     setError('');
 
     try {
-      // Clean up existing state
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -93,12 +83,9 @@ export function AuthPage() {
         return;
       }
 
-      if (data.user && data.session) {
-        setMessage('Login realizado com sucesso! Redirecionando...');
-        // Small delay to show message then redirect
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 500);
+      if (data.session) {
+        setMessage('Login realizado com sucesso!');
+        // Auth context will handle the redirect automatically
       } else {
         setError('Erro no login. Sessão não foi criada corretamente.');
       }
@@ -129,15 +116,6 @@ export function AuthPage() {
     }
 
     try {
-      // Clean up existing state first
-      cleanupAuthState();
-      
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-      }
-
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -161,30 +139,12 @@ export function AuthPage() {
         return;
       }
 
-      if (data.user) {
-        // Try immediate login after signup
-        setMessage('Conta criada! Fazendo login...');
-        
-        try {
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: formData.email,
-            password: formData.password,
-          });
-
-          if (loginError) {
-            setError('Conta criada, mas erro no login. Tente fazer login na aba "Entrar".');
-            return;
-          }
-
-          if (loginData.user && loginData.session) {
-            setMessage('Login realizado com sucesso! Redirecionando...');
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 1000);
-          }
-        } catch (loginErr) {
-          setError('Conta criada, mas erro no login automático. Use a aba "Entrar".');
-        }
+      if (data.user && data.session) {
+        // User is automatically logged in after signup (email confirmation disabled)
+        setMessage('Conta criada e login realizado com sucesso!');
+        // Auth context will handle the redirect
+      } else if (data.user) {
+        setMessage('Conta criada! Faça login usando suas credenciais.');
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');

@@ -14,25 +14,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [pendingUser, setPendingUser] = useState<User | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
           // Defer profile fetching to prevent deadlocks
           setTimeout(async () => {
+            if (!mounted) return;
+            
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error } = await supabase
                 .from('profiles')
                 .select(`
                   *,
                   user_roles (role)
                 `)
                 .eq('user_id', session.user.id)
-                .single();
+                .maybeSingle();
 
-              if (profile) {
+              if (error) {
+                console.error('Error fetching user profile:', error);
+                setIsLoading(false);
+                return;
+              }
+
+              if (profile && mounted) {
                 const userData: User = {
                   id: profile.user_id,
                   email: profile.email,
@@ -44,28 +57,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   isActive: true
                 };
                 setUser(userData);
+              } else if (mounted) {
+                console.log('No profile found for user, creating default user object');
+                const userData: User = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+                  role: 'analista',
+                  avatar: undefined,
+                  createdAt: new Date(),
+                  lastLogin: new Date(),
+                  isActive: true
+                };
+                setUser(userData);
               }
             } catch (error) {
               console.error('Error fetching user profile:', error);
+            } finally {
+              if (mounted) {
+                setIsLoading(false);
+              }
             }
-          }, 0);
+          }, 100);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      
+      if (error) {
+        console.error('Error getting session:', error);
+        setIsLoading(false);
+        return;
+      }
+      
       if (!session) {
         setUser(null);
         setIsLoading(false);
       }
+      // If session exists, it will be handled by the auth state change listener
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -78,12 +119,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        console.error('Login error:', error);
         setIsLoading(false);
         return false;
       }
 
-      // Auth state change will be handled by the listener
-      return true;
+      if (data.session) {
+        console.log('Login successful, session created');
+        // Auth state change will be handled by the listener
+        return true;
+      }
+
+      setIsLoading(false);
+      return false;
     } catch (error) {
       console.error('Authentication error:', error);
       setIsLoading(false);
